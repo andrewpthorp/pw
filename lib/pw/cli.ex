@@ -1,4 +1,6 @@
 defmodule PW.CLI do
+  @dir Path.expand(Application.get_env(:pw, :root))
+
   @moduledoc """
   Handle the command line parsing.
   """
@@ -44,17 +46,25 @@ defmodule PW.CLI do
   end
 
   @doc """
+  Print a password to STDOUT.
+  """
+  def process({"get", password}) do
+    IO.puts "Getting '#{password}'."
+    IO.puts File.read!(@dir <> password)
+  end
+
+  @doc """
   List all passwords.
   """
   def process({"list", _}) do
-    {:ok, files} = File.ls(System.user_home! <> "/.pw/")
+    {:ok, files} = File.ls(@dir)
     Enum.each files, &(IO.puts(&1))
   end
 
   @doc """
   Remove a password.
   """
-  def process({"rm", filename}) do
-    File.rm!(System.user_home! <> "/.pw/#{filename}")
+  def process({"rm", password}) do
+    File.rm!(@dir <> password)
   end
 end
