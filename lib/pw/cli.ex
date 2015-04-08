@@ -47,8 +47,14 @@ defmodule PW.CLI do
   Print a password to STDOUT.
   """
   def process({"get", password}) do
-    IO.puts "Getting '#{password}'."
-    IO.puts File.read!(@dir <> password)
+    if String.contains?(password, ".gpg") do
+      {results, 0} = System.cmd("gpg", ["--no-tty", "-q", "-d", @dir <> password])
+    else
+      results = File.read!(@dir <> password)
+    end
+
+    output = "Contents of #{password}:\n"
+    output <> results |> String.strip |> IO.puts
   end
 
   @doc """
@@ -64,6 +70,7 @@ defmodule PW.CLI do
   """
   def process({"rm", password}) do
     File.rm!(@dir <> password)
+    IO.puts "Deleted #{password}"
   end
 
   @doc """
