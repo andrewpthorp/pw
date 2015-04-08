@@ -1,11 +1,11 @@
 defmodule PW.CLI do
-  @dir Path.expand(Application.get_env(:pw, :root))
+  @dir Path.expand(Application.get_env(:pw, :root)) <> "/"
 
   @moduledoc """
   Handle the command line parsing.
   """
 
-  def run(argv) do
+  def main(argv) do
     argv
       |> parse_args
       |> process
@@ -32,9 +32,7 @@ defmodule PW.CLI do
   Display usage information.
   """
   def process(:help) do
-    IO.puts """
-    usage: pw <command> [ description | id ]
-    """
+    IO.puts "usage: pw <command> [ description | id ]"
     System.halt(0)
   end
 
@@ -66,5 +64,12 @@ defmodule PW.CLI do
   """
   def process({"rm", password}) do
     File.rm!(@dir <> password)
+  end
+
+  @doc """
+  Unknown command, display help.
+  """
+  def process(_) do
+    process(:help)
   end
 end

@@ -5,6 +5,7 @@ defmodule PW.Mixfile do
     [app: :pw,
      version: "0.0.1",
      elixir: "~> 1.0",
+     escript: escript_config,
      deps: deps]
   end
 
@@ -25,6 +26,9 @@ defmodule PW.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    []
+  end
+
+  defp escript_config do
+    [ main_module: PW.CLI ]
   end
 end
