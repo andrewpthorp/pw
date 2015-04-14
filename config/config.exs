@@ -16,6 +16,9 @@ use Mix.Config
 #       metadata: [:user_id]
 
 config :pw, root: "~/pw/"
+config :logger, utc_log: true
+config :logger, :console,
+  format: "$date $time [$level] $message $metadata\n"
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment

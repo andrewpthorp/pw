@@ -13,7 +13,7 @@ defmodule PW.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :porcelain]]
   end
 
   # Dependencies can be Hex packages:
@@ -26,9 +26,10 @@ defmodule PW.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
+    [{:porcelain, "~> 2.0.0"}]
   end
 
   defp escript_config do
-    [ main_module: PW.CLI ]
+    [main_module: PW.CLI]
   end
 end

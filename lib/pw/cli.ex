@@ -1,18 +1,21 @@
 defmodule PW.CLI do
-  @dir Path.expand(Application.get_env(:pw, :root)) <> "/"
 
   @moduledoc """
   Handle the command line parsing.
   """
+
+  require Logger
+  alias Porcelain.Result
+
+  @dir Path.expand(Application.get_env(:pw, :root)) <> "/"
+  @switches [help: :boolean]
+  @aliases [h: :help]
 
   def main(argv) do
     argv
       |> parse_args
       |> process
   end
-
-  @switches [help: :boolean]
-  @aliases [h: :help]
 
   @doc """
   `argv` can be -h or --help, which returns :help.
@@ -32,7 +35,18 @@ defmodule PW.CLI do
   Display usage information.
   """
   def process(:help) do
-    IO.puts "usage: pw <command> [ description | id ]"
+    IO.puts """
+    Usage: pw [options] <command> [args]
+
+    Options:
+        -h, --help            Display this message
+
+    Commands:
+        list                  List all passwords by name
+        add <password>        Add a new password, named <password>
+        edit <password>       Edit <password>
+        rm <password>         Delete <password>
+    """
     System.halt(0)
   end
 
@@ -40,21 +54,21 @@ defmodule PW.CLI do
   Add a new password.
   """
   def process({"add", password}) do
-    IO.puts "Adding '#{password}'."
+    IO.puts "TODO: Add new password: #{password}"
   end
 
   @doc """
   Print a password to STDOUT.
   """
   def process({"get", password}) do
-    if String.contains?(password, ".gpg") do
-      {results, 0} = System.cmd("gpg", ["--no-tty", "-q", "-d", @dir <> password])
-    else
-      results = File.read!(@dir <> password)
-    end
+    %Result{err: err, out: results, status: status} = Porcelain.shell("gpg --no-tty -d #{@dir <> password}")
 
-    output = "Contents of #{password}:\n"
-    output <> results |> String.strip |> IO.puts
+    if status == 0 do
+      output = "Contents of #{password}:\n"
+      output <> results |> String.strip |> IO.puts
+    else
+      IO.puts "Something went wrong: #{err}"
+    end
   end
 
   @doc """
@@ -76,7 +90,8 @@ defmodule PW.CLI do
   @doc """
   Unknown command, display help.
   """
-  def process(_) do
+  def process({cmd, _}) do
+    IO.puts "Unknown command: #{cmd}"
     process(:help)
   end
 end
