@@ -16,6 +16,8 @@ use Mix.Config
 #       metadata: [:user_id]
 
 config :pw, root: "~/pw/"
+config :pw, recipient: "andrewpthorp@gmail.com"
+
 config :logger, utc_log: true
 config :logger, :console,
   format: "$date $time [$level] $message $metadata\n"

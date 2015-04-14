@@ -7,6 +7,7 @@ defmodule PW.CLI do
   require Logger
   alias Porcelain.Result
 
+  @recipient Application.get_env(:pw, :recipient)
   @dir Path.expand(Application.get_env(:pw, :root)) <> "/"
   @switches [help: :boolean]
   @aliases [h: :help]
@@ -40,6 +41,7 @@ defmodule PW.CLI do
 
     Options:
         -h, --help            Display this message
+        -f, --force           Overwrite password if exists
 
     Commands:
         list                  List all passwords by name
@@ -53,21 +55,25 @@ defmodule PW.CLI do
   @doc """
   Add a new password.
   """
-  def process({"add", password}) do
-    IO.puts "TODO: Add new password: #{password}"
+  def process({"add", filename}) do
+    IO.puts "Enter contents for #{filename} (end with new line):"
+    Enum.take_while(IO.stream(:stdio, :line), &(String.strip(&1) != ""))
+    |> perform_gpg(:encrypt)
+    |> parse_result
+    |> write_to_file(filename)
   end
 
   @doc """
   Print a password to STDOUT.
   """
-  def process({"get", password}) do
-    %Result{err: err, out: results, status: status} = Porcelain.shell("gpg --no-tty -d #{@dir <> password}")
+  def process({"get", filename}) do
+    validate_file_exists(filename)
 
-    if status == 0 do
-      output = "Contents of #{password}:\n"
-      output <> results |> String.strip |> IO.puts
-    else
-      IO.puts "Something went wrong: #{err}"
+    case perform_gpg(filename, :decrypt) do
+      %Result{out: results, status: 0} ->
+        "Contents of #{filename}:\n#{results}" |> String.strip |> IO.puts
+      %Result{err: err} ->
+        IO.puts "Error: #{err}"
     end
   end
 
@@ -75,16 +81,20 @@ defmodule PW.CLI do
   List all passwords.
   """
   def process({"list", _}) do
-    {:ok, files} = File.ls(@dir)
-    Enum.each files, &(IO.puts(&1))
+    case File.ls(@dir) do
+      {:ok, results} -> Enum.each(results, &(IO.puts(&1)))
+      {_, err} -> IO.puts("Error: #{err}")
+    end
   end
 
   @doc """
   Remove a password.
   """
-  def process({"rm", password}) do
-    File.rm!(@dir <> password)
-    IO.puts "Deleted #{password}"
+  def process({"rm", filename}) do
+    validate_file_exists(filename)
+
+    File.rm!(@dir <> filename)
+    IO.puts "Deleted #{filename}"
   end
 
   @doc """
@@ -94,4 +104,15 @@ defmodule PW.CLI do
     IO.puts "Unknown command: #{cmd}"
     process(:help)
   end
+
+  defp perform_gpg(plaintext, :encrypt), do: Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{@recipient}")
+  defp perform_gpg(filename, :decrypt), do: Porcelain.shell("gpg --no-tty -d #{@dir <> filename}")
+  defp parse_result(%Result{out: result}), do: result
+  defp write_to_file(encrypted, filename), do: File.write!(@dir <> filename, encrypted)
+
+  defp validate_file_exists(filename) do
+    if !File.exists?(@dir <> filename) do
+      IO.puts "Error: #{@dir <> filename} does not exist."
+      System.halt(1)
+    end
 end
