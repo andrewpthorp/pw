@@ -66,7 +66,7 @@ defmodule PW.CLI do
   def process(["list"]) do
     case File.ls(PW.root_dir) do
       {:ok, results} -> Enum.each(results, &(PW.io.puts(&1)))
-      {_, err} -> PW.io.puts("Error: #{err}")
+      {_, err} -> error("Error: #{err}")
     end
   end
 
@@ -83,7 +83,7 @@ defmodule PW.CLI do
       %Result{out: results, status: 0} ->
         "Contents of #{filename}:\n#{results}" |> String.strip |> PW.io.puts
       %Result{err: _err} ->
-        PW.io.puts "Whoops! Something went wrong."
+        error("Whoops! Something went wrong.")
     end
   end
 
@@ -94,8 +94,8 @@ defmodule PW.CLI do
   will then be written to disk at `root_dir <> filename`.
   """
   def process(["add", filename]) do
-    PW.io.puts "Encrypting #{filename} to #{PW.recipient}."
-    PW.io.puts "Type the contents of #{filename}, end with a blank line:"
+    "Encrypting #{filename} to #{PW.recipient}.\nType the contents of #{filename}, end with a blank line:" |> IO.puts
+
     Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
     |> perform_gpg(:encrypt)
     |> parse_result
@@ -155,8 +155,12 @@ defmodule PW.CLI do
   # it does not.
   defp validate_file_exists(filename) do
     if !File.exists?(PW.root_dir <> filename) do
-      PW.io.puts "Error: #{PW.root_dir <> filename} does not exist."
+      error("#{PW.root_dir <> filename} does not exist.")
       System.halt(1)
     end
+  end
+
+  defp error(msg) do
+    IO.ANSI.red <> msg <> IO.ANSI.reset |> IO.puts
   end
 end
