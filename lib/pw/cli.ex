@@ -1,5 +1,4 @@
 defmodule PW.CLI do
-  import  PW
   require Logger
   alias   Porcelain.Result
 
@@ -14,7 +13,7 @@ defmodule PW.CLI do
   end
 
   @switches [help: :boolean]
-  @aliases [h: :help]
+  @aliases [h: :help, r: :recipient]
 
   # If "-h", "--help", or an unknown command is in argv, return :usage. If not,
   # return a tuple in the format {command, optional_argument}.
@@ -22,27 +21,27 @@ defmodule PW.CLI do
     parse = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case parse do
-      { [help: true], _, _ }      -> :usage
-      { _, [command, param], _ }  -> { command, param }
-      { _, [command], _ }         -> { command, "" }
-      _                           -> :usage
+      {[help: true], _, _}          -> :usage
+      {opts, [command, arg], _}     -> {[command, arg], opts}
+      {opts, [command], _}          -> {[command], opts}
+      _                             -> :usage
     end
   end
 
   # Print usage information to STDOUT.
   def process(:usage) do
-    io.puts """
+    PW.io.puts """
     Usage: pw [options] <command> [args]
 
     Options:
-        -h, --help            Display this message
-        -f, --force           Overwrite password if exists
+        -h, --help                Display this message
+        -r, --recipient REC       Specify the gpg recipient to encrypt the password to
 
     Commands:
-        list                  List all passwords by name
-        add <password>        Add a new password, named <password>
-        edit <password>       Edit <password>
-        rm <password>         Delete <password>
+        list                      List all passwords by name
+        add <password>            Add a new password, named <password>
+        edit <password>           Edit <password>
+        rm <password>             Delete <password>
     """
     System.halt(0)
   end
@@ -51,10 +50,10 @@ defmodule PW.CLI do
   #
   # Encrypt the contents of STDIN to the gpg key for `recipient`. The ciphertext
   # will then be written to disk at `root_dir <> filename`.
-  def process({"add", filename}) do
-    io.puts "Enter contents for #{filename} (end with new line):"
-    Enum.take_while(io.stream(:stdio, :line), &(String.strip(&1) != ""))
-    |> perform_gpg(:encrypt)
+  def process({["add", filename], opts}) do
+    PW.io.puts "Enter contents for #{filename} (end with new line):"
+    Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
+    |> perform_gpg(:encrypt, Keyword.get(opts, :recipient, PW.recipient))
     |> parse_result
     |> write_to_file(filename)
   end
@@ -63,26 +62,24 @@ defmodule PW.CLI do
   #
   # Validate `filename` exists in `root_dir`, then decrypt it and write the
   # plaintext to STDOUT.
-  def process({"get", filename}) do
+  def process({["get", filename], opts}) do
     validate_file_exists(filename)
 
     case perform_gpg(filename, :decrypt) do
       %Result{out: results, status: 0} ->
-        "Contents of #{filename}:\n#{results}" |> String.strip |> io.puts
-      %Result{err: ""} ->
-        io.puts "Error: an unknown error occurred."
-      %Result{err: err} ->
-        io.puts "Error: #{err}"
+        "Contents of #{filename}:\n#{results}" |> String.strip |> PW.io.puts
+      %Result{err: _err} ->
+        PW.io.puts "Whoops! Something went wrong."
     end
   end
 
   # List all passwords.
   #
   # Print the name of every file in `root_dir` to STDOUT.
-  def process({"list", _}) do
-    case File.ls(root_dir) do
-      {:ok, results} -> Enum.each(results, &(io.puts(&1)))
-      {_, err} -> io.puts("Error: #{err}")
+  def process({["list"], opts}) do
+    case File.ls(PW.root_dir) do
+      {:ok, results} -> Enum.each(results, &(PW.io.puts(&1)))
+      {_, err} -> PW.io.puts("Error: #{err}")
     end
   end
 
@@ -90,28 +87,28 @@ defmodule PW.CLI do
   #
   # Validate `filename` exists in `root_dir`, then delete `filename` from
   # `root_dir`.
-  def process({"rm", filename}) do
+  def process({["rm", filename], opts}) do
     validate_file_exists(filename)
 
-    File.rm!(root_dir <> filename)
-    io.puts "Deleted #{filename}"
+    File.rm!(PW.root_dir <> filename)
+    PW.io.puts "Deleted #{filename}"
   end
 
   # If the command that is passed in is not a valid command, print the usage
   # information to STDOUT.
-  def process({cmd, _}) do
-    io.puts "Unknown command: #{cmd}"
+  def process({args, _}) do
+    PW.io.puts "Unknown command: #{Enum.at(args, 0)}"
     process(:usage)
   end
 
   # Encrypt `plaintext` to gpg key for `recipient`.
-  defp perform_gpg(plaintext, :encrypt) do
+  defp perform_gpg(plaintext, :encrypt, recipient) do
     Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{recipient}")
   end
 
   # Decrypt the contents of `filename` in `root_dir`.
   defp perform_gpg(filename, :decrypt) do
-    Porcelain.shell("gpg --no-tty -d #{root_dir <> filename}")
+    Porcelain.shell("gpg --no-tty -d #{PW.root_dir <> filename}")
   end
 
   # Helper function to extract `out` from a `Porcelain.Result`.
@@ -120,14 +117,14 @@ defmodule PW.CLI do
   # Takes some `ciphertext` and writes it to `filename` in `root_dir`. It will
   # overwrite `filename` in `root_dir` if it already exists.
   defp write_to_file(ciphertext, filename) do
-    File.write!(root_dir <> filename, ciphertext)
+    File.write!(PW.root_dir <> filename, ciphertext)
   end
 
   # Validate `filename` exists in `root_dir`, exit program with a status of 1 if
   # it does not.
   defp validate_file_exists(filename) do
-    if !File.exists?(root_dir <> filename) do
-      io.puts "Error: #{root_dir <> filename} does not exist."
+    if !File.exists?(PW.root_dir <> filename) do
+      PW.io.puts "Error: #{PW.root_dir <> filename} does not exist."
       System.halt(1)
     end
   end
