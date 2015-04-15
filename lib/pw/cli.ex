@@ -65,8 +65,10 @@ defmodule PW.CLI do
   """
   def process(["list"]) do
     case File.ls(PW.root_dir) do
-      {:ok, results} -> Enum.each(results, &(PW.io.puts(&1)))
-      {_, err} -> error("Error: #{err}")
+      {:ok, results}      -> Enum.each(results, &(PW.io.puts(&1)))
+      {:error, :enoent}   -> error("#{PW.root_dir} does not exist.")
+      {:error, :eaccess}  -> error("You do not have access to #{PW.root_dir}.")
+      {_, err}            -> error(err)
     end
   end
 
@@ -83,7 +85,7 @@ defmodule PW.CLI do
       %Result{out: results, status: 0} ->
         "Contents of #{filename}:\n#{results}" |> String.strip |> PW.io.puts
       %Result{err: _err} ->
-        error("Whoops! Something went wrong.")
+        error("GPG decryption failed.")
     end
   end
 
@@ -165,7 +167,8 @@ defmodule PW.CLI do
     end
   end
 
+  # Print an appropriate, red error `msg`.
   defp error(msg) do
-    IO.ANSI.red <> msg <> IO.ANSI.reset |> IO.puts
+    IO.ANSI.red <> IO.ANSI.underline <> "Error" <> IO.ANSI.no_underline <> ": #{msg}" <> IO.ANSI.reset |> IO.puts
   end
 end
