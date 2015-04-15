@@ -11,15 +11,6 @@ PW is a personal, GPG-based, password manager.
     # Print google.com password to stdout.
     $ pw get google.com
 
-    # Copy google.com password to clipboard.
-    $ pw copy google.com
-   
-    # Get a prompt to edit google.com password.
-    $ pw edit google.com
-   
-    # Generate a random new password named amazon.com
-    $ pw generate amazon.com
-   
     # List all passwords
     $ pw list
 
