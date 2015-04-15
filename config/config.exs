@@ -15,7 +15,7 @@ use Mix.Config
 #       format: "$date $time [$level] $metadata$message\n",
 #       metadata: [:user_id]
 
-config :pw, root: "~/pw/"
+config :pw, directory: "~/pw/"
 config :pw, recipient: "andrewpthorp@gmail.com"
 config :pw, io: IO
 

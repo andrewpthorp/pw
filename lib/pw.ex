@@ -1,9 +1,9 @@
 defmodule PW do
 
   @doc """
-  Get the :root env variable.
+  Get the :directory env variable.
   """
-  def root_dir, do: Path.expand(Application.get_env(:pw, :root)) <> "/"
+  def root_dir, do: Path.expand(Application.get_env(:pw, :directory)) <> "/"
 
   @doc """
   Get the :recipient env variable.

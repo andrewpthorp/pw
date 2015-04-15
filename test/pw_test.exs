@@ -2,7 +2,7 @@ defmodule PWTest do
   use ExUnit.Case
 
   test "root_dir/0" do
-    Application.put_env(:pw, :root, "nashville")
+    Application.put_env(:pw, :directory, "nashville")
     assert PW.root_dir == Path.expand("nashville") <> "/"
   end
 

@@ -3,7 +3,7 @@ defmodule PW.CLITest do
   import PW.CLI
 
   setup do
-    Application.put_env(:pw, :root, "test/data")
+    Application.put_env(:pw, :directory, "test/data")
     Application.put_env(:pw, :io, MockIO)
   end
 

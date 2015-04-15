@@ -3,7 +3,18 @@ defmodule PW.CLI do
   alias   Porcelain.Result
 
   @moduledoc """
-  Handle the command line parsing.
+  Usage: pw [options] <command> [args]
+
+  Options:
+      -h, --help                Display this message
+      -r, --recipient REC       Specify the gpg recipient <REC> to encrypt the password to
+      -d, --directory DIR       Write passwords to / read passwords from <DIR>
+
+  Commands:
+      list                      List all passwords by name
+      add <password>            Add a new password, named <password>
+      edit <password>           Edit <password>
+      rm <password>             Delete <password>
   """
 
   def main(argv) do
@@ -13,56 +24,59 @@ defmodule PW.CLI do
   end
 
   @switches [help: :boolean]
-  @aliases [h: :help, r: :recipient]
+  @aliases [h: :help, r: :recipient, d: :directory]
 
-  # If "-h", "--help", or an unknown command is in argv, return :usage. If not,
-  # return a tuple in the format {command, optional_argument}.
+  @doc """
+  Use `OptionParser` to parse arguments.
+
+  If `-h`, `--help`, or an unknown command is in argv, return :usage. If not,
+  return a tuple in the format {[command, optional_arg], flags}.
+  """
   def parse_args(argv) do
     parse = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case parse do
-      {[help: true], _, _}          -> :usage
-      {opts, [command, arg], _}     -> {[command, arg], opts}
-      {opts, [command], _}          -> {[command], opts}
-      _                             -> :usage
+      {[help: true], _, _}        -> :usage
+      {flags, [command, arg], _}  -> {[command, arg], flags}
+      {flags, [command], _}       -> {[command], flags}
+      _                           -> :usage
     end
   end
 
-  # Print usage information to STDOUT.
-  def process(:usage) do
-    PW.io.puts """
-    Usage: pw [options] <command> [args]
+  @doc """
+  Extract opts into env variables and pass execution to the correct `process`.
+  """
+  def process({command, opts}) do
+    if Keyword.has_key?(opts, :recipient) do
+      Application.put_env(:pw, :recipient, Keyword.get(opts, :recipient))
+    end
 
-    Options:
-        -h, --help                Display this message
-        -r, --recipient REC       Specify the gpg recipient to encrypt the password to
+    if Keyword.has_key?(opts, :directory) do
+      Application.put_env(:pw, :directory, Keyword.get(opts, :directory))
+    end
 
-    Commands:
-        list                      List all passwords by name
-        add <password>            Add a new password, named <password>
-        edit <password>           Edit <password>
-        rm <password>             Delete <password>
-    """
-    System.halt(0)
+    process(command)
   end
 
-  # Add a new password to the filesystem.
-  #
-  # Encrypt the contents of STDIN to the gpg key for `recipient`. The ciphertext
-  # will then be written to disk at `root_dir <> filename`.
-  def process({["add", filename], opts}) do
-    PW.io.puts "Enter contents for #{filename} (end with new line):"
-    Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
-    |> perform_gpg(:encrypt, Keyword.get(opts, :recipient, PW.recipient))
-    |> parse_result
-    |> write_to_file(filename)
+  @doc """
+  List all passwords.
+
+  Print the name of every file in `root_dir` to STDOUT.
+  """
+  def process(["list"]) do
+    case File.ls(PW.root_dir) do
+      {:ok, results} -> Enum.each(results, &(PW.io.puts(&1)))
+      {_, err} -> PW.io.puts("Error: #{err}")
+    end
   end
 
-  # Print a password to STDOUT.
-  #
-  # Validate `filename` exists in `root_dir`, then decrypt it and write the
-  # plaintext to STDOUT.
-  def process({["get", filename], opts}) do
+  @doc """
+  Print a password to STDOUT.
+
+  Validate `filename` exists in `root_dir`, then decrypt it and write the
+  plaintext to STDOUT.
+  """
+  def process(["get", filename]) do
     validate_file_exists(filename)
 
     case perform_gpg(filename, :decrypt) do
@@ -73,37 +87,54 @@ defmodule PW.CLI do
     end
   end
 
-  # List all passwords.
-  #
-  # Print the name of every file in `root_dir` to STDOUT.
-  def process({["list"], opts}) do
-    case File.ls(PW.root_dir) do
-      {:ok, results} -> Enum.each(results, &(PW.io.puts(&1)))
-      {_, err} -> PW.io.puts("Error: #{err}")
-    end
+  @doc """
+  Add a new password to the filesystem.
+
+  Encrypt the contents of STDIN to the gpg key for `recipient`. The ciphertext
+  will then be written to disk at `root_dir <> filename`.
+  """
+  def process(["add", filename]) do
+    PW.io.puts "Encrypting #{filename} to #{PW.recipient}."
+    PW.io.puts "Type the contents of #{filename}, end with a blank line:"
+    Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
+    |> perform_gpg(:encrypt)
+    |> parse_result
+    |> write_to_file(filename)
   end
 
-  # Remove a password.
-  #
-  # Validate `filename` exists in `root_dir`, then delete `filename` from
-  # `root_dir`.
-  def process({["rm", filename], opts}) do
+  @doc """
+  Remove a password.
+
+  Validate `filename` exists in `root_dir`, then delete `filename` from
+  `root_dir`.
+  """
+  def process(["rm", filename]) do
     validate_file_exists(filename)
 
     File.rm!(PW.root_dir <> filename)
     PW.io.puts "Deleted #{filename}"
   end
 
-  # If the command that is passed in is not a valid command, print the usage
-  # information to STDOUT.
-  def process({args, _}) do
-    PW.io.puts "Unknown command: #{Enum.at(args, 0)}"
+  @doc """
+  Print usage information to STDOUT.
+  """
+  def process(:usage) do
+    PW.io.puts @moduledoc
+    System.halt(0)
+  end
+
+  @doc """
+  If the command that is passed in is not a valid command, print the usage
+  information to STDOUT.
+  """
+  def process(args) do
+    PW.io.puts "Unknown command: #{Enum.at(args, 0)}\n"
     process(:usage)
   end
 
   # Encrypt `plaintext` to gpg key for `recipient`.
-  defp perform_gpg(plaintext, :encrypt, recipient) do
-    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{recipient}")
+  defp perform_gpg(plaintext, :encrypt) do
+    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{PW.recipient}")
   end
 
   # Decrypt the contents of `filename` in `root_dir`.
