@@ -13,6 +13,8 @@ PW is a personal, GPG-based, password manager.
 
     # List all passwords
     $ pw list
+    
+Use `pw -h` to see all available options.
 
 ### Inspiration
 
