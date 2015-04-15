@@ -13,7 +13,7 @@ defmodule PW.CLI do
   Commands:
       list                      List all passwords by name
       add <password>            Add a new password, named <password>
-      edit <password>           Edit <password>
+      get <password>            Get <password> and print to STDOUT
       rm <password>             Delete <password>
   """
 
