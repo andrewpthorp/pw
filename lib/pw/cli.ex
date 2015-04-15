@@ -18,6 +18,7 @@ defmodule PW.CLI do
   """
 
   def main(argv) do
+    parse_config
     argv
       |> parse_args
       |> process
@@ -25,6 +26,22 @@ defmodule PW.CLI do
 
   @switches [help: :boolean]
   @aliases [h: :help, r: :recipient, d: :directory]
+
+  @dic """
+  Parse a file at ~/.pw to set env variables.
+  """
+  def parse_config do
+    case File.read(Path.expand("~/.pw")) do
+      {:ok, ""}     -> :ok
+      {:ok, config}   ->
+        String.strip(config)
+        |> String.split("\n")
+        |> Enum.map(&(String.split(&1, "=")))
+        |> Enum.each(fn [k, v] -> Application.put_env(:pw, String.to_atom(k), v) end)
+
+      {:error, _err}  -> :ok
+    end
+  end
 
   @doc """
   Use `OptionParser` to parse arguments.
@@ -96,6 +113,8 @@ defmodule PW.CLI do
   will then be written to disk at `root_dir <> filename`.
   """
   def process(["add", filename]) do
+    validate_recipient_set
+
     """
     Encrypting #{filename} to #{PW.recipient}.
     Type the contents of #{filename}, end with a blank line:
@@ -163,6 +182,15 @@ defmodule PW.CLI do
   defp validate_file_exists(filename) do
     if !File.exists?(PW.root_dir <> filename) do
       error("#{PW.root_dir <> filename} does not exist.")
+      System.halt(1)
+    end
+  end
+
+  # Validate `recipient` is set to something. This does not check that it is a
+  # valid GPG recipient.
+  defp validate_recipient_set do
+    if PW.recipient == nil do
+      error("recipient is not set.")
       System.halt(1)
     end
   end

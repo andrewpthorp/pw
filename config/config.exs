@@ -16,7 +16,6 @@ use Mix.Config
 #       metadata: [:user_id]
 
 config :pw, directory: "~/pw/"
-config :pw, recipient: "andrewpthorp@gmail.com"
 config :pw, io: IO
 
 config :logger, utc_log: true
