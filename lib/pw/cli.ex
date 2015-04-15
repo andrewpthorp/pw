@@ -94,7 +94,12 @@ defmodule PW.CLI do
   will then be written to disk at `root_dir <> filename`.
   """
   def process(["add", filename]) do
-    "Encrypting #{filename} to #{PW.recipient}.\nType the contents of #{filename}, end with a blank line:" |> IO.puts
+    """
+    Encrypting #{filename} to #{PW.recipient}.
+    Type the contents of #{filename}, end with a blank line:
+    """
+    |> String.strip
+    |> IO.puts
 
     Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
     |> perform_gpg(:encrypt)
