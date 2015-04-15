@@ -1,3 +1,8 @@
+defmodule MockIO do
+  def puts(_str), do: ""
+  def stream(:stdio, :line), do: ["username: foo\n", "password: bar\n", ""]
+end
+
 defmodule PW.CLITest do
   use ExUnit.Case, async: false
   import PW.CLI
