@@ -18,10 +18,9 @@ defmodule PW.CLI do
       |> process
   end
 
-  @doc """
-  `argv` can be -h or --help, which returns :help.
-  """
-  def parse_args(argv) do
+  # If "-h", "--help", or an unknown command is in argv, return :usage. If not,
+  # return a tuple in the format {command, optional_argument}.
+  defp parse_args(argv) do
     parse = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case parse do
