@@ -17,6 +17,7 @@ use Mix.Config
 
 config :pw, root: "~/pw/"
 config :pw, recipient: "andrewpthorp@gmail.com"
+config :pw, io: IO
 
 config :logger, utc_log: true
 config :logger, :console,

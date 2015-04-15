@@ -1,1 +1,3 @@
-%{"porcelain": {:hex, :porcelain, "2.0.0"}}
+%{"meck": {:hex, :meck, "0.8.2"},
+  "mock": {:hex, :mock, "0.1.0"},
+  "porcelain": {:hex, :porcelain, "2.0.0"}}

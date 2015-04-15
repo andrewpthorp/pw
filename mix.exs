@@ -26,7 +26,8 @@ defmodule PW.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    [{:porcelain, "~> 2.0.0"}]
+    [{:porcelain, "~> 2.0.0"},
+     {:mock, "~> 0.1.0", only: :test}]
   end
 
   defp escript_config do
