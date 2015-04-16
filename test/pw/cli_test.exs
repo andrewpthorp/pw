@@ -1,4 +1,4 @@
-defmodule MockIO do
+defmodule FakeIO do
   def puts(_str), do: ""
   def stream(:stdio, :line), do: ["username: foo\n", "password: bar\n", ""]
 end
@@ -9,7 +9,7 @@ defmodule PW.CLITest do
 
   setup do
     Application.put_env(:pw, :directory, "test/data")
-    Application.put_env(:pw, :io, MockIO)
+    Application.put_env(:pw, :io, FakeIO)
   end
 
   test "argument parser" do
