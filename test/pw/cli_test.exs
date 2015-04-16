@@ -10,6 +10,7 @@ defmodule PW.CLITest do
   setup do
     Application.put_env(:pw, :directory, "test/data")
     Application.put_env(:pw, :io, FakeIO)
+    Application.put_env(:pw, :recipient, "foo@bar.com")
   end
 
   test "argument parser" do

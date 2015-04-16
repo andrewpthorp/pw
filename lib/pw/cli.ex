@@ -31,7 +31,7 @@ defmodule PW.CLI do
   Parse a file at ~/.pw to set env variables.
   """
   def parse_config do
-    case File.read(Path.expand("~/.pw")) do
+    case File.read(Path.expand(Application.get_env(:pw, :config_file))) do
       {:ok, ""}     -> :ok
       {:ok, config}   ->
         String.strip(config)
@@ -120,7 +120,7 @@ defmodule PW.CLI do
     Type the contents of #{filename}, end with a blank line:
     """
     |> String.strip
-    |> IO.puts
+    |> PW.io.puts
 
     Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
     |> perform_gpg(:encrypt)

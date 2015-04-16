@@ -17,6 +17,7 @@ use Mix.Config
 
 config :pw, directory: "~/pw/"
 config :pw, io: IO
+config :pw, config_file: "~/.pw"
 
 config :logger, utc_log: true
 config :logger, :console,
