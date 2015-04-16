@@ -10,4 +10,9 @@ defmodule PWTest do
     Application.put_env(:pw, :recipient, "foo@bar.com")
     assert PW.recipient == "foo@bar.com"
   end
+
+  test "io/0" do
+    Application.put_env(:pw, :io, IO)
+    assert PW.io == IO
+  end
 end
