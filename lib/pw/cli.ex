@@ -22,6 +22,8 @@ defmodule PW.CLI do
     argv
       |> parse_args
       |> process
+      |> Enum.join("\n")
+      |> PW.io.puts
   end
 
   @switches [help: :boolean]
@@ -67,7 +69,7 @@ defmodule PW.CLI do
   """
   def process({["list"], opts}) do
     case File.ls(PW.root_dir(opts)) do
-      {:ok, results}      -> Enum.each(results, &(PW.io.puts(&1)))
+      {:ok, results}      -> ["I know passwords for:"] ++ results
       {:error, :enoent}   -> error("#{PW.root_dir(opts)} does not exist.")
       {:error, :eaccess}  -> error("You do not have access to #{PW.root_dir(opts)}.")
       {_, err}            -> error(err)
@@ -85,7 +87,7 @@ defmodule PW.CLI do
 
     case perform_gpg(filename, :decrypt, opts) do
       %Result{out: results, status: 0} ->
-        "Contents of #{filename}:\n#{results}" |> String.strip |> PW.io.puts
+        ["Contents of #{filename}:"] ++ String.split(String.strip(results), "\n")
       %Result{err: _err} ->
         error("GPG decryption failed.")
     end
@@ -111,6 +113,8 @@ defmodule PW.CLI do
     |> perform_gpg(:encrypt, opts)
     |> parse_result
     |> write_to_file(filename, opts)
+
+    ["Added #{filename}."]
   end
 
   @doc """
@@ -123,7 +127,8 @@ defmodule PW.CLI do
     validate_file_exists!(filename, opts)
 
     File.rm!(PW.root_dir(opts) <> filename)
-    PW.io.puts "Deleted #{filename}"
+
+    ["Deleted #{filename}."]
   end
 
   @doc """

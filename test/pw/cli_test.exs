@@ -11,6 +11,10 @@ defmodule PW.CLITest do
     Application.put_env(:pw, :directory, "test/data")
     Application.put_env(:pw, :io, FakeIO)
     Application.put_env(:pw, :recipient, "foo@bar.com")
+
+    # Make sure test/data is clear for each test (brittle)
+    File.rm_rf("test/data")
+    File.mkdir_p("test/data")
   end
 
   test "argument parser" do
@@ -33,5 +37,17 @@ defmodule PW.CLITest do
     assert File.exists?(PW.root_dir <> "foo")
     process({["rm", "foo"], []})
     refute File.exists?(PW.root_dir <> "foo")
+  end
+
+  # TODO: testing list/get is brittle and depends on my gpg key. This is fine
+  # for now, but I need a real approach for this.
+  test "process/1 when listing passwords returns an array" do
+    process({["add", "foopass"], []})
+    assert process({["list"], []}) == ["I know passwords for:", "foopass"]
+  end
+
+  test "process/1 when getting new password returns the contents" do
+    process({["add", "foopass"], [recipient: "andrewpthorp@gmail.com"]})
+    assert process({["get", "foopass"], []}) == ["Contents of foopass:", "username: foo", "password: bar"]
   end
 end
