@@ -61,30 +61,15 @@ defmodule PW.CLI do
   end
 
   @doc """
-  Extract opts into env variables and pass execution to the correct `process`.
-  """
-  def process({command, opts}) do
-    if Keyword.has_key?(opts, :recipient) do
-      Application.put_env(:pw, :recipient, Keyword.get(opts, :recipient))
-    end
-
-    if Keyword.has_key?(opts, :directory) do
-      Application.put_env(:pw, :directory, Keyword.get(opts, :directory))
-    end
-
-    process(command)
-  end
-
-  @doc """
   List all passwords.
 
   Print the name of every file in `root_dir` to STDOUT.
   """
-  def process(["list"]) do
-    case File.ls(PW.root_dir) do
+  def process({["list"], opts}) do
+    case File.ls(PW.root_dir(opts)) do
       {:ok, results}      -> Enum.each(results, &(PW.io.puts(&1)))
-      {:error, :enoent}   -> error("#{PW.root_dir} does not exist.")
-      {:error, :eaccess}  -> error("You do not have access to #{PW.root_dir}.")
+      {:error, :enoent}   -> error("#{PW.root_dir(opts)} does not exist.")
+      {:error, :eaccess}  -> error("You do not have access to #{PW.root_dir(opts)}.")
       {_, err}            -> error(err)
     end
   end
@@ -95,10 +80,10 @@ defmodule PW.CLI do
   Validate `filename` exists in `root_dir`, then decrypt it and write the
   plaintext to STDOUT.
   """
-  def process(["get", filename]) do
-    validate_file_exists(filename)
+  def process({["get", filename], opts}) do
+    validate_file_exists!(filename, opts)
 
-    case perform_gpg(filename, :decrypt) do
+    case perform_gpg(filename, :decrypt, opts) do
       %Result{out: results, status: 0} ->
         "Contents of #{filename}:\n#{results}" |> String.strip |> PW.io.puts
       %Result{err: _err} ->
@@ -112,20 +97,20 @@ defmodule PW.CLI do
   Encrypt the contents of STDIN to the gpg key for `recipient`. The ciphertext
   will then be written to disk at `root_dir <> filename`.
   """
-  def process(["add", filename]) do
-    validate_recipient_set
+  def process({["add", filename], opts}) do
+    validate_recipient_set!(opts)
 
     """
-    Encrypting #{filename} to #{PW.recipient}.
+    Encrypting #{filename} to #{PW.recipient(opts)}.
     Type the contents of #{filename}, end with a blank line:
     """
     |> String.strip
     |> PW.io.puts
 
     Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
-    |> perform_gpg(:encrypt)
+    |> perform_gpg(:encrypt, opts)
     |> parse_result
-    |> write_to_file(filename)
+    |> write_to_file(filename, opts)
   end
 
   @doc """
@@ -134,10 +119,10 @@ defmodule PW.CLI do
   Validate `filename` exists in `root_dir`, then delete `filename` from
   `root_dir`.
   """
-  def process(["rm", filename]) do
-    validate_file_exists(filename)
+  def process({["rm", filename], opts}) do
+    validate_file_exists!(filename, opts)
 
-    File.rm!(PW.root_dir <> filename)
+    File.rm!(PW.root_dir(opts) <> filename)
     PW.io.puts "Deleted #{filename}"
   end
 
@@ -154,18 +139,19 @@ defmodule PW.CLI do
   information to STDOUT.
   """
   def process(args) do
-    PW.io.puts "Unknown command: #{Enum.at(args, 0)}\n"
+    command = elem(args, 0) |> Enum.at(0)
+    error("unknown command: #{command}\n")
     process(:usage)
   end
 
   # Encrypt `plaintext` to gpg key for `recipient`.
-  defp perform_gpg(plaintext, :encrypt) do
-    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{PW.recipient}")
+  defp perform_gpg(plaintext, :encrypt, opts) do
+    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{PW.recipient(opts)}")
   end
 
   # Decrypt the contents of `filename` in `root_dir`.
-  defp perform_gpg(filename, :decrypt) do
-    Porcelain.shell("gpg --no-tty -d #{PW.root_dir <> filename}")
+  defp perform_gpg(filename, :decrypt, opts) do
+    Porcelain.shell("gpg --no-tty -d #{PW.root_dir(opts) <> filename}")
   end
 
   # Helper function to extract `out` from a `Porcelain.Result`.
@@ -173,23 +159,23 @@ defmodule PW.CLI do
 
   # Takes some `ciphertext` and writes it to `filename` in `root_dir`. It will
   # overwrite `filename` in `root_dir` if it already exists.
-  defp write_to_file(ciphertext, filename) do
-    File.write!(PW.root_dir <> filename, ciphertext)
+  defp write_to_file(ciphertext, filename, opts) do
+    File.write!(PW.root_dir(opts) <> filename, ciphertext)
   end
 
   # Validate `filename` exists in `root_dir`, exit program with a status of 1 if
   # it does not.
-  defp validate_file_exists(filename) do
-    if !File.exists?(PW.root_dir <> filename) do
-      error("#{PW.root_dir <> filename} does not exist.")
+  defp validate_file_exists!(filename, opts) do
+    if !File.exists?(PW.root_dir(opts) <> filename) do
+      error("#{PW.root_dir(opts) <> filename} does not exist.")
       System.halt(1)
     end
   end
 
   # Validate `recipient` is set to something. This does not check that it is a
   # valid GPG recipient.
-  defp validate_recipient_set do
-    if PW.recipient == nil do
+  defp validate_recipient_set!(opts) do
+    if PW.recipient(opts) == nil do
       error("recipient is not set.")
       System.halt(1)
     end
