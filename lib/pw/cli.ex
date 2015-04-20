@@ -29,7 +29,7 @@ defmodule PW.CLI do
   @switches [help: :boolean]
   @aliases [h: :help, r: :recipient, d: :directory]
 
-  @dic """
+  @doc """
   Parse a file at ~/.pw to set env variables.
   """
   def parse_config do
