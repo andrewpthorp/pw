@@ -85,7 +85,7 @@ defmodule PW.CLI do
   def process({["get", filename], opts}) do
     validate_file_exists!(filename, opts)
 
-    case perform_gpg(filename, :decrypt, opts) do
+    case PW.GPG.decrypt(filename, opts) do
       %Result{out: results, status: 0} ->
         ["Contents of #{filename}:"] ++ String.split(String.strip(results), "\n")
       %Result{err: _err} ->
@@ -110,8 +110,7 @@ defmodule PW.CLI do
     |> PW.io.puts
 
     Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
-    |> perform_gpg(:encrypt, opts)
-    |> parse_result
+    |> PW.GPG.encrypt(opts)
     |> write_to_file(filename, opts)
 
     ["Added #{filename}."]
@@ -148,19 +147,6 @@ defmodule PW.CLI do
     error("unknown command: #{command}\n")
     process(:usage)
   end
-
-  # Encrypt `plaintext` to gpg key for `recipient`.
-  defp perform_gpg(plaintext, :encrypt, opts) do
-    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{PW.recipient(opts)}")
-  end
-
-  # Decrypt the contents of `filename` in `root_dir`.
-  defp perform_gpg(filename, :decrypt, opts) do
-    Porcelain.shell("gpg --no-tty -d #{PW.root_dir(opts) <> filename}")
-  end
-
-  # Helper function to extract `out` from a `Porcelain.Result`.
-  defp parse_result(%Result{out: result}), do: result
 
   # Takes some `ciphertext` and writes it to `filename` in `root_dir`. It will
   # overwrite `filename` in `root_dir` if it already exists.
