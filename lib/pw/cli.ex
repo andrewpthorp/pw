@@ -68,12 +68,7 @@ defmodule PW.CLI do
   Print the name of every file in `root_dir` to STDOUT.
   """
   def process({["list"], opts}) do
-    case File.ls(PW.root_dir(opts)) do
-      {:ok, results}      -> ["I know passwords for:"] ++ results
-      {:error, :enoent}   -> error("#{PW.root_dir(opts)} does not exist.")
-      {:error, :eaccess}  -> error("You do not have access to #{PW.root_dir(opts)}.")
-      {_, err}            -> error(err)
-    end
+    ["I know passwords for:"] ++ fetch_passwords(PW.root_dir(opts), PW.root_dir(opts))
   end
 
   @doc """
@@ -181,6 +176,17 @@ defmodule PW.CLI do
     |> List.delete_at(-1)
     |> Enum.join("/")
     |> File.mkdir_p
+  end
+
+  # Get all passwords in a `path`. `base_path` is stripped from each of the
+  # filenames at the end. This lets us preserve the partial path for nested
+  # passwords, but remove the base path (PW root).
+  defp fetch_passwords(path, base_path) do
+    path = Path.expand(path) <> "/"
+    File.ls!(path)
+    |> Enum.map(fn x -> if File.dir?(path <> x), do: fetch_passwords(path <> x, base_path), else: path <> x end)
+    |> List.flatten
+    |> Enum.map(&String.replace(&1, base_path, ""))
   end
 
   # Print an appropriate, red error `msg`.
