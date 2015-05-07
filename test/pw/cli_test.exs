@@ -27,12 +27,17 @@ defmodule PW.CLITest do
     assert parse_args(["--recipient", "r", "a"]) == {["a"], [recipient: "r"]}
   end
 
-  test "process/1 when adding a new password" do
+  test "adding a new password" do
     process({["add", "foo"], []})
     assert File.exists?(PW.root_dir <> "foo")
   end
 
-  test "process/1 when removing a password" do
+  test "adding a nested password" do
+    process({["add", "foo/bar"], []})
+    assert File.exists?(PW.root_dir <> "foo/bar")
+  end
+
+  test "removing a password" do
     process({["add", "foo"], []})
     assert File.exists?(PW.root_dir <> "foo")
     process({["rm", "foo"], []})
@@ -41,12 +46,12 @@ defmodule PW.CLITest do
 
   # TODO: testing list/get is brittle and depends on my gpg key. This is fine
   # for now, but I need a real approach for this.
-  test "process/1 when listing passwords returns an array" do
+  test "listing passwords returns an array" do
     process({["add", "foopass"], []})
     assert process({["list"], []}) == ["I know passwords for:", "foopass"]
   end
 
-  test "process/1 when getting new password returns the contents" do
+  test "getting password returns the contents" do
     process({["add", "foopass"], [recipient: "andrewpthorp@gmail.com"]})
     assert process({["get", "foopass"], []}) == ["Contents of foopass:", "username: foo", "password: bar"]
   end

@@ -101,6 +101,7 @@ defmodule PW.CLI do
   """
   def process({["add", filename], opts}) do
     validate_recipient_set!(opts)
+    create_directory(filename, opts)
 
     """
     Encrypting #{filename} to #{PW.recipient(opts)}.
@@ -170,6 +171,16 @@ defmodule PW.CLI do
       error("recipient is not set.")
       System.halt(1)
     end
+  end
+
+  # In order to allow passwords in nested directories, we have to make sure the
+  # entire directory structure exists.
+  defp create_directory(filename, opts) do
+    PW.root_dir(opts) <> filename
+    |> String.split("/")
+    |> List.delete_at(-1)
+    |> Enum.join("/")
+    |> File.mkdir_p
   end
 
   # Print an appropriate, red error `msg`.
