@@ -67,7 +67,8 @@ defmodule PW.CLI do
 
   Print the name of every file in `root_dir` to STDOUT.
   """
-  def process({["list"], opts}) do
+  def process({["l"], opts}), do: process({["ls"], opts})
+  def process({["ls"], opts}) do
     fetch_passwords(PW.root_dir(opts), PW.root_dir(opts))
   end
 
@@ -77,6 +78,7 @@ defmodule PW.CLI do
   Validate `filename` exists in `root_dir`, then decrypt it and write the
   plaintext to STDOUT.
   """
+  def process({["g", filename], opts}), do: process({["get", filename], opts})
   def process({["get", filename], opts}) do
     validate_file_exists!(filename, opts)
 
@@ -94,6 +96,7 @@ defmodule PW.CLI do
   Encrypt the contents of STDIN to the gpg key for `recipient`. The ciphertext
   will then be written to disk at `root_dir <> filename`.
   """
+  def process({["a", filename], opts}), do: process({["add", filename], opts})
   def process({["add", filename], opts}) do
     validate_recipient_set!(opts)
     create_directory(filename, opts)
@@ -118,6 +121,7 @@ defmodule PW.CLI do
   Validate `filename` exists in `root_dir`, then delete `filename` from
   `root_dir`.
   """
+  def process({["r", filename], opts}), do: process({["rm", filename], opts})
   def process({["rm", filename], opts}) do
     validate_file_exists!(filename, opts)
 

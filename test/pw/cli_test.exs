@@ -48,7 +48,7 @@ defmodule PW.CLITest do
   # for now, but I need a real approach for this.
   test "listing passwords returns an array" do
     process({["add", "foopass"], []})
-    assert process({["list"], []}) == ["foopass"]
+    assert process({["ls"], []}) == ["foopass"]
   end
 
   test "getting password returns the contents" do
