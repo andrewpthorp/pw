@@ -68,7 +68,7 @@ defmodule PW.CLI do
   Print the name of every file in `root_dir` to STDOUT.
   """
   def process({["list"], opts}) do
-    ["I know passwords for:"] ++ fetch_passwords(PW.root_dir(opts), PW.root_dir(opts))
+    fetch_passwords(PW.root_dir(opts), PW.root_dir(opts))
   end
 
   @doc """
@@ -192,5 +192,6 @@ defmodule PW.CLI do
   # Print an appropriate, red error `msg`.
   defp error(msg) do
     IO.ANSI.red <> IO.ANSI.underline <> "Error" <> IO.ANSI.no_underline <> ": #{msg}" <> IO.ANSI.reset |> IO.puts
+    System.halt(1)
   end
 end

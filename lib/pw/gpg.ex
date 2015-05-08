@@ -11,7 +11,7 @@ defmodule PW.GPG do
   returning the result.
   """
   def decrypt(filename, opts) do
-    Porcelain.shell("gpg --no-tty -d #{PW.root_dir(opts) <> filename}")
+    Porcelain.shell("gpg --no-tty -d '#{PW.root_dir(opts) <> filename}'")
   end
 
   @doc """
