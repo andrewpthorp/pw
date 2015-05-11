@@ -23,4 +23,9 @@ defmodule PW do
   Get the :io env variable.
   """
   def io, do: Application.get_env(:pw, :io)
+
+  @doc """
+  Get the version of the application.
+  """
+  def version, do: "0.1.0"
 end

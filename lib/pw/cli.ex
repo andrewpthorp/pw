@@ -8,6 +8,7 @@ defmodule PW.CLI do
       -h, --help                        Display this message
       -r, --recipient REC               Specify the gpg recipient <REC> to encrypt the password to
       -d, --directory DIR               Write passwords to / read passwords from <DIR>
+      -v, --version                     Print the version of the app
 
   Commands:
       l, ls                             List all passwords by name
@@ -26,8 +27,8 @@ defmodule PW.CLI do
       |> PW.io.puts
   end
 
-  @switches [help: :boolean]
-  @aliases [h: :help, r: :recipient, d: :directory]
+  @switches [help: :boolean, version: :boolean]
+  @aliases [h: :help, r: :recipient, d: :directory, v: :version]
 
   @doc """
   Parse a file at ~/.pw to set env variables.
@@ -55,6 +56,7 @@ defmodule PW.CLI do
     parse = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case parse do
+      {[version: true], _, _}             -> :version
       {[help: true], _, _}                -> :usage
       {flags, [command, arg], _}          -> {[command, arg], flags}
       {flags, [command, arg1, arg2], _}   -> {[command, arg1, arg2], flags}
@@ -158,6 +160,14 @@ defmodule PW.CLI do
   """
   def process(:usage) do
     PW.io.puts @moduledoc
+    System.halt(0)
+  end
+
+  @doc """
+  Print version to STDOUT.
+  """
+  def process(:version) do
+    PW.io.puts PW.version
     System.halt(0)
   end
 
