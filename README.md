@@ -1,6 +1,8 @@
 PW
 ==
 
+[![Build Status](https://semaphoreci.com/api/v1/projects/dfa8d836-9af2-4001-8a05-2e1196e7c06a/420927/shields_badge.svg)](https://semaphoreci.com/andrewpthorp/pw)
+
 PW is a personal, GPG-based, password manager.
 
 ### Usage
