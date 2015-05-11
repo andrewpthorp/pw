@@ -1,5 +1,4 @@
 defmodule PW.CLI do
-  require Logger
   alias   Porcelain.Result
 
   @moduledoc """
@@ -148,6 +147,13 @@ defmodule PW.CLI do
   end
 
   @doc """
+  Use `process(:usage)` to get help.
+  """
+  def process({["h"], _opts}), do: process({["help"], _opts})
+  def process({["help"], _opts}), do: process(:usage)
+
+
+  @doc """
   Print usage information to STDOUT.
   """
   def process(:usage) do
@@ -161,8 +167,7 @@ defmodule PW.CLI do
   """
   def process(args) do
     command = elem(args, 0) |> Enum.at(0)
-    error("unknown command: #{command}\n")
-    process(:usage)
+    error("unknown command: #{command}. Use -h to get help.")
   end
 
   # Takes some `ciphertext` and writes it to `filename` in `root_dir`. It will
@@ -176,7 +181,6 @@ defmodule PW.CLI do
   defp validate_file_exists!(filename, opts) do
     if !File.exists?(PW.root_dir(opts) <> filename) do
       error("#{PW.root_dir(opts) <> filename} does not exist.")
-      System.halt(1)
     end
   end
 
@@ -185,7 +189,6 @@ defmodule PW.CLI do
   defp validate_recipient_set!(opts) do
     if PW.recipient(opts) == nil do
       error("recipient is not set.")
-      System.halt(1)
     end
   end
 
@@ -212,6 +215,11 @@ defmodule PW.CLI do
 
   # Print an appropriate, red error `msg`.
   defp error(msg) do
+    error(msg, 1)
+  end
+
+  defp error(msg, status) do
     IO.ANSI.red <> IO.ANSI.underline <> "Error" <> IO.ANSI.no_underline <> ": #{msg}" <> IO.ANSI.reset |> IO.puts
+    System.halt(status)
   end
 end
