@@ -6,15 +6,16 @@ defmodule PW.CLI do
   Usage: pw [options] <command> [args]
 
   Options:
-      -h, --help                Display this message
-      -r, --recipient REC       Specify the gpg recipient <REC> to encrypt the password to
-      -d, --directory DIR       Write passwords to / read passwords from <DIR>
+      -h, --help                        Display this message
+      -r, --recipient REC               Specify the gpg recipient <REC> to encrypt the password to
+      -d, --directory DIR               Write passwords to / read passwords from <DIR>
 
   Commands:
-      list                      List all passwords by name
-      add <password>            Add a new password, named <password>
-      get <password>            Get <password> and print to STDOUT
-      rm <password>             Delete <password>
+      l, ls                             List all passwords by name
+      a, add <password>                 Add a new password, named <password>
+      g, get <password>                 Get <password> and print to STDOUT
+      r, rm <password>                  Delete <password>
+      m, mv <password> <new_password>   Move <password> to <new_password>
   """
 
   def main(argv) do
@@ -55,10 +56,11 @@ defmodule PW.CLI do
     parse = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case parse do
-      {[help: true], _, _}        -> :usage
-      {flags, [command, arg], _}  -> {[command, arg], flags}
-      {flags, [command], _}       -> {[command], flags}
-      _                           -> :usage
+      {[help: true], _, _}                -> :usage
+      {flags, [command, arg], _}          -> {[command, arg], flags}
+      {flags, [command, arg1, arg2], _}   -> {[command, arg1, arg2], flags}
+      {flags, [command], _}               -> {[command], flags}
+      _                                   -> :usage
     end
   end
 
@@ -131,6 +133,21 @@ defmodule PW.CLI do
   end
 
   @doc """
+  Rename/move a password.
+
+  Validate `filename` exists in `root_dir`, then move it to `new_location`.
+  """
+  def process({["m", filename, new_filename], opts}), do: process({["mv", filename, new_filename], opts})
+  def process({["mv", filename, new_filename], opts}) do
+    validate_file_exists!(filename, opts)
+    create_directory(new_filename, opts)
+
+    :file.rename(PW.root_dir(opts) <> filename, PW.root_dir(opts) <> new_filename)
+
+    ["Moved #{filename} to #{new_filename}."]
+  end
+
+  @doc """
   Print usage information to STDOUT.
   """
   def process(:usage) do
@@ -196,6 +213,5 @@ defmodule PW.CLI do
   # Print an appropriate, red error `msg`.
   defp error(msg) do
     IO.ANSI.red <> IO.ANSI.underline <> "Error" <> IO.ANSI.no_underline <> ": #{msg}" <> IO.ANSI.reset |> IO.puts
-    System.halt(1)
   end
 end

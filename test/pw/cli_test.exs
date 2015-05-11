@@ -32,6 +32,15 @@ defmodule PW.CLITest do
     assert File.exists?(PW.root_dir <> "foo")
   end
 
+  test "renaming a password" do
+    process({["add", "old"], []})
+    assert File.exists?(PW.root_dir <> "old")
+
+    process({["mv", "old", "new"], []})
+    refute File.exists?(PW.root_dir <> "old")
+    assert File.exists?(PW.root_dir <> "new")
+  end
+
   test "adding a nested password" do
     process({["add", "foo/bar"], []})
     assert File.exists?(PW.root_dir <> "foo/bar")
