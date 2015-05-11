@@ -28,7 +28,7 @@ $ pw -h
 
 A typical flow for me looks like the following:
 
-```
+```shell
 $ pw add personal/google.com
 Encrypting personal/google.com to andrewpthorp@gmail.com.
 Type the contents of personal/google.com, end with a blank line:
