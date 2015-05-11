@@ -60,6 +60,7 @@ defmodule PW.CLITest do
     assert process({["ls"], []}) == ["foopass"]
   end
 
+  @tag :real_gpg
   test "getting password returns the contents" do
     process({["add", "foopass"], [recipient: "andrewpthorp@gmail.com"]})
     assert process({["get", "foopass"], []}) == ["Contents of foopass:", "username: foo", "password: bar"]
