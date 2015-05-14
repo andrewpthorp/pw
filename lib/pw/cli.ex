@@ -200,6 +200,9 @@ defmodule PW.CLI do
   defp create_tmpfile(contents \\ "") do
     tmpfile = System.tmp_dir! <> :crypto.rand_bytes(6)
     File.write!(tmpfile, contents)
+
+    # HACK: Don't use mvim directly, but `vim` doesn't work so $EDITOR is out
+    # unless I figure out why it does not work.
     {"", 0} = System.cmd("mvim", [tmpfile])
 
     tmpfile
