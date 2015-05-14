@@ -111,11 +111,26 @@ defmodule PW.CLI do
     |> String.strip
     |> PW.io.puts
 
-    Enum.take_while(PW.io.stream(:stdio, :line), &(String.strip(&1) != ""))
-    |> PW.GPG.encrypt(opts)
-    |> write_to_file(filename, opts)
+    create_tmpfile
+    |> finalize_tmpfile(filename, opts)
 
     ["Added #{filename}."]
+  end
+
+  def process({["e", filename], opts}), do: process({["edit", filename], opts})
+  def process({["edit", filename], opts}) do
+    validate_recipient_set!(opts)
+    validate_file_exists!(filename, opts)
+
+    case PW.GPG.decrypt(filename, opts) do
+      %Result{out: results, status: 0} ->
+        create_tmpfile(results)
+        |> finalize_tmpfile(filename, opts)
+
+        ["Updated #{filename}."]
+      %Result{err: _err} ->
+        error("GPG decryption failed.")
+    end
   end
 
   @doc """
@@ -178,6 +193,24 @@ defmodule PW.CLI do
   def process(args) do
     command = elem(args, 0) |> Enum.at(0)
     error("unknown command: #{command}. Use -h to get help.")
+  end
+
+  # Generates a temporary file name, launches `mvim` to create it.
+  defp create_tmpfile(contents \\ "") do
+    tmpfile = System.tmp_dir! <> :crypto.rand_bytes(6)
+    File.write!(tmpfile, contents)
+    {"", 0} = System.cmd("mvim", [tmpfile])
+
+    tmpfile
+  end
+
+  # Takes a `tmpfile`, encrypts it, and moves it to `filename`.
+  defp finalize_tmpfile(tmpfile, filename, opts) do
+    File.read!(tmpfile)
+    |> PW.GPG.encrypt(opts)
+    |> write_to_file(filename, opts)
+
+    File.rm!(tmpfile)
   end
 
   # Takes some `ciphertext` and writes it to `filename` in `root_dir`. It will
