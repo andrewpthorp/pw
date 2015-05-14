@@ -14,6 +14,7 @@ defmodule PW.CLI do
       l, ls                             List all passwords by name
       a, add <password>                 Add a new password, named <password>
       g, get <password>                 Get <password> and print to STDOUT
+      e, edit <password>                Edit <password> with mvim
       r, rm <password>                  Delete <password>
       m, mv <password> <new_password>   Move <password> to <new_password>
   """
