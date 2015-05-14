@@ -27,5 +27,8 @@ defmodule PW do
   @doc """
   Get the version of the application.
   """
-  def version, do: "0.1.0"
+  def version do
+    {:ok, version} = :application.get_key(:pw, :vsn)
+    version
+  end
 end
