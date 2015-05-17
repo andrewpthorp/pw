@@ -1,5 +1,6 @@
 defmodule PW.CLI do
-  alias   Porcelain.Result
+  alias Porcelain.Result
+  import PW.FileUtils, only: [create: 1, edit: 1, finalize!: 3]
 
   @moduledoc """
   Usage: pw [options] <command> [args]
@@ -106,14 +107,12 @@ defmodule PW.CLI do
     create_directory(filename, opts)
 
     """
-    Encrypting #{filename} to #{PW.recipient(opts)}.
-    Type the contents of #{filename}, end with a blank line:
+    # Add a new password. You can use mutiple lines.
+    # Lines that begin with a # will be ignored.
     """
-    |> String.strip
-    |> PW.io.puts
-
-    create_tmpfile
-    |> finalize_tmpfile(filename, opts)
+    |> create
+    |> edit
+    |> finalize!(filename, opts)
 
     ["Added #{filename}."]
   end
@@ -125,8 +124,12 @@ defmodule PW.CLI do
 
     case PW.GPG.decrypt(filename, opts) do
       %Result{out: results, status: 0} ->
-        create_tmpfile(results)
-        |> finalize_tmpfile(filename, opts)
+
+        # Remove the trailing newline.
+        String.strip(results)
+        |> create
+        |> edit
+        |> finalize!(filename, opts)
 
         ["Updated #{filename}."]
       %Result{err: _err} ->
@@ -194,33 +197,6 @@ defmodule PW.CLI do
   def process(args) do
     command = elem(args, 0) |> Enum.at(0)
     error("unknown command: #{command}. Use -h to get help.")
-  end
-
-  # Generates a temporary file name, launches `mvim` to create it.
-  defp create_tmpfile(contents \\ "") do
-    tmpfile = System.tmp_dir! <> :crypto.rand_bytes(6)
-    File.write!(tmpfile, contents)
-
-    # HACK: Don't use mvim directly, but `vim` doesn't work so $EDITOR is out
-    # unless I figure out why it does not work.
-    {"", 0} = System.cmd("mvim", [tmpfile])
-
-    tmpfile
-  end
-
-  # Takes a `tmpfile`, encrypts it, and moves it to `filename`.
-  defp finalize_tmpfile(tmpfile, filename, opts) do
-    File.read!(tmpfile)
-    |> PW.GPG.encrypt(opts)
-    |> write_to_file(filename, opts)
-
-    File.rm!(tmpfile)
-  end
-
-  # Takes some `ciphertext` and writes it to `filename` in `root_dir`. It will
-  # overwrite `filename` in `root_dir` if it already exists.
-  defp write_to_file(ciphertext, filename, opts) do
-    File.write!(PW.root_dir(opts) <> filename, ciphertext)
   end
 
   # Validate `filename` exists in `root_dir`, exit program with a status of 1 if
