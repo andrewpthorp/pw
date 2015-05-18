@@ -1,5 +1,6 @@
 defmodule PW.GPG do
-  alias   Porcelain.Result
+  alias Porcelain.Result
+  import PW, only: [root_dir: 1, recipient: 1]
 
   @moduledoc """
   The core of `PW.GPG` is `decrypt` and `encrypt`. All things pertaining to
@@ -11,7 +12,7 @@ defmodule PW.GPG do
   returning the result.
   """
   def decrypt(filename, opts) do
-    Porcelain.shell("gpg --no-tty -d '#{PW.root_dir(opts) <> filename}'")
+    Porcelain.shell("gpg --no-tty -d '#{root_dir(opts) <> filename}'")
   end
 
   @doc """
@@ -19,7 +20,7 @@ defmodule PW.GPG do
   result.
   """
   def encrypt(plaintext, opts) do
-    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{PW.recipient(opts)}")
+    Porcelain.shell("echo '#{plaintext}' | gpg --no-tty -aer #{recipient(opts)}")
     |> output
   end
 

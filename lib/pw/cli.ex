@@ -1,6 +1,8 @@
 defmodule PW.CLI do
   alias Porcelain.Result
-  import PW.FileUtils, only: [create: 1, edit: 1, finalize!: 3]
+  import PW, only: [root_dir: 1, recipient: 1, io: 0, version: 0]
+  import PW.GPG, only: [decrypt: 2]
+  import PW.Utils, only: [create: 1, edit: 1, finalize!: 3, rand_string: 1]
 
   @moduledoc """
   Usage: pw [options] <command> [args]
@@ -12,12 +14,13 @@ defmodule PW.CLI do
       -v, --version                     Print the version of the app
 
   Commands:
-      l, ls                             List all passwords by name
       a, add <password>                 Add a new password, named <password>
-      g, get <password>                 Get <password> and print to STDOUT
       e, edit <password>                Edit <password> with mvim
-      r, rm <password>                  Delete <password>
+      g, get <password>                 Get <password> and print to STDOUT
+      gen, generate <password>          Generate a new password, named <password>
+      l, ls                             List all passwords by name
       m, mv <password> <new_password>   Move <password> to <new_password>
+      r, rm <password>                  Delete <password>
   """
 
   def main(argv) do
@@ -26,7 +29,7 @@ defmodule PW.CLI do
       |> parse_args
       |> process
       |> Enum.join("\n")
-      |> PW.io.puts
+      |> io.puts
   end
 
   @switches [help: :boolean, version: :boolean]
@@ -74,7 +77,7 @@ defmodule PW.CLI do
   """
   def process({["l"], opts}), do: process({["ls"], opts})
   def process({["ls"], opts}) do
-    fetch_passwords(PW.root_dir(opts), PW.root_dir(opts))
+    fetch_passwords(root_dir(opts), root_dir(opts))
   end
 
   @doc """
@@ -87,9 +90,9 @@ defmodule PW.CLI do
   def process({["get", filename], opts}) do
     validate_file_exists!(filename, opts)
 
-    case PW.GPG.decrypt(filename, opts) do
+    case decrypt(filename, opts) do
       %Result{out: results, status: 0} ->
-        ["Contents of #{filename}:"] ++ String.split(String.strip(results), "\n")
+        ["Contents of '#{filename}':"] ++ String.split(String.strip(results), "\n")
       %Result{err: _err} ->
         error("GPG decryption failed.")
     end
@@ -103,6 +106,7 @@ defmodule PW.CLI do
   """
   def process({["a", filename], opts}), do: process({["add", filename], opts})
   def process({["add", filename], opts}) do
+    validate_file_does_not_exist!(filename, opts)
     validate_recipient_set!(opts)
     create_directory(filename, opts)
 
@@ -122,7 +126,7 @@ defmodule PW.CLI do
     validate_recipient_set!(opts)
     validate_file_exists!(filename, opts)
 
-    case PW.GPG.decrypt(filename, opts) do
+    case decrypt(filename, opts) do
       %Result{out: results, status: 0} ->
 
         # Remove the trailing newline.
@@ -147,7 +151,7 @@ defmodule PW.CLI do
   def process({["rm", filename], opts}) do
     validate_file_exists!(filename, opts)
 
-    File.rm!(PW.root_dir(opts) <> filename)
+    File.rm!(root_dir(opts) <> filename)
 
     ["Deleted #{filename}."]
   end
@@ -162,9 +166,35 @@ defmodule PW.CLI do
     validate_file_exists!(filename, opts)
     create_directory(new_filename, opts)
 
-    :file.rename(PW.root_dir(opts) <> filename, PW.root_dir(opts) <> new_filename)
+    :file.rename(root_dir(opts) <> filename, root_dir(opts) <> new_filename)
 
     ["Moved #{filename} to #{new_filename}."]
+  end
+
+  @doc """
+  Generate a new password.
+
+  Validate `filename` does not exist, and create a new password in the
+  following format:
+
+  Username: `PW.recipient`
+  Password: <generated_password>
+  """
+  def process({["gen", filename], opts}), do: process({["generate", filename], opts})
+  def process({["generate", filename], opts}) do
+    validate_file_does_not_exist!(filename, opts)
+    validate_recipient_set!(opts)
+    create_directory(filename, opts)
+
+    """
+    Username: #{recipient(opts)}
+    Password: #{rand_string(16)}
+    """
+    |> create
+    |> edit
+    |> finalize!(filename, opts)
+
+    process({["get", filename], opts})
   end
 
   @doc """
@@ -178,7 +208,7 @@ defmodule PW.CLI do
   Print usage information to STDOUT.
   """
   def process(:usage) do
-    PW.io.puts @moduledoc
+    io.puts @moduledoc
     System.halt(0)
   end
 
@@ -186,7 +216,7 @@ defmodule PW.CLI do
   Print version to STDOUT.
   """
   def process(:version) do
-    PW.io.puts PW.version
+    io.puts version
     System.halt(0)
   end
 
@@ -202,15 +232,23 @@ defmodule PW.CLI do
   # Validate `filename` exists in `root_dir`, exit program with a status of 1 if
   # it does not.
   defp validate_file_exists!(filename, opts) do
-    if !File.exists?(PW.root_dir(opts) <> filename) do
-      error("#{PW.root_dir(opts) <> filename} does not exist.")
+    if !File.exists?(root_dir(opts) <> filename) do
+      error("#{root_dir(opts) <> filename} does not exist.")
+    end
+  end
+
+  # Validate `filename` does not exist in `root_dir`, exit program with a status
+  # of 1 if it does.
+  defp validate_file_does_not_exist!(filename, opts) do
+    if File.exists?(root_dir(opts) <> filename) do
+      error("#{root_dir(opts) <> filename} already exists.")
     end
   end
 
   # Validate `recipient` is set to something. This does not check that it is a
   # valid GPG recipient.
   defp validate_recipient_set!(opts) do
-    if PW.recipient(opts) == nil do
+    if recipient(opts) == nil do
       error("recipient is not set.")
     end
   end
@@ -218,7 +256,7 @@ defmodule PW.CLI do
   # In order to allow passwords in nested directories, we have to make sure the
   # entire directory structure exists.
   defp create_directory(filename, opts) do
-    PW.root_dir(opts) <> filename
+    root_dir(opts) <> filename
     |> String.split("/")
     |> List.delete_at(-1)
     |> Enum.join("/")
