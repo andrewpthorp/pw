@@ -72,6 +72,7 @@ to `gpg` as the `-r` for encryption.
 * Internal project for password management used by [Stripe](https://stripe.com).
 * [pw](https://github.com/nelhage/pw) by [nelhage](https://twitter.com/nelhage).
 
+
 ---
 
-_[0] Why build something that requires erlang for distribution? It was a fun way to learn Elixir!_
+**[0]** _Why build something that requires erlang for distribution? It was a fun way to learn Elixir!_
