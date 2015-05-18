@@ -5,15 +5,13 @@ PW
 
 PW is a personal, GPG-based, password manager.
 
---
-
-### Installation
+## Installation
 
 - You must have [erlang](http://erlang.org) installed[0].
 - Head over to the [releases](https://github.com/andrewpthorp/pw/releases) page and grab the latest release.
 - Stick the `pw` binary somewhere in your `PATH`.
 
-### Usage
+## Usage
 
 ```shell
 
@@ -58,7 +56,7 @@ password: mypass
 
 Use `pw -h` to see all available options.
 
-### Configuration
+## Configuration
 
 You can create a file `~/.pw` with some configuration.
 
@@ -69,7 +67,7 @@ You can create a file `~/.pw` with some configuration.
 `directory` is where the passwords will be stored, `recipient` is what is passed
 to `gpg` as the `-r` for encryption.
 
-### Inspiration
+## Inspiration
 
 * Internal project for password management used by [Stripe](https://stripe.com).
 * [pw](https://github.com/nelhage/pw) by [nelhage](https://twitter.com/nelhage).
