@@ -5,6 +5,8 @@ PW
 
 PW is a personal, GPG-based, password manager.
 
+--
+
 ### Installation
 
 - You must have [erlang](http://erlang.org) installed[0].
@@ -72,7 +74,6 @@ to `gpg` as the `-r` for encryption.
 * Internal project for password management used by [Stripe](https://stripe.com).
 * [pw](https://github.com/nelhage/pw) by [nelhage](https://twitter.com/nelhage).
 
-
----
+--
 
 **[0]** _Why build something that requires erlang for distribution? It was a fun way to learn Elixir!_
